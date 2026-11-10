@@ -1,0 +1,37 @@
+/* ========== 论坛扩展功能样式 ========== */
+.post-action.followed {
+  color: #8A5A3B;
+  font-weight: 500;
+}
+
+.btn-follow {
+  white-space: nowrap;
+  letter-spacing: 1px;
+}
+
+#btn-account-settings,
+#btn-anonymous {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.post-back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-bottom: 16px;
+  font-size: 22px;
+  line-height: 1;
+  color: #8A5A3B;
+  background: #FFFDF6;
+  border: 1px solid #DCCBB2;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.post-back-btn:hover {
+  background: #F2E7D5;
+}

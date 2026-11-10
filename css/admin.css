@@ -1,0 +1,150 @@
+/* ========== 管理员功能样式 ========== */
+.post-flags {
+  margin-bottom: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+.post-flag {
+  display: inline-block;
+  padding: 1px 8px;
+  font-size: 12px;
+  color: #8A5A3B;
+  background: #F6EBD8;
+  border: 1px solid #DCCBB2;
+  border-radius: 2px;
+  letter-spacing: 1px;
+}
+
+.post-flag.locked {
+  color: #B04A32;
+  background: #F7E8E1;
+  border-color: #D9B7A8;
+}
+
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #E4D8C4;
+}
+
+.post-detail-actions .admin-actions {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.admin-action {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #8A5A3B;
+  background: #FFFDF6;
+  border: 1px solid #DCCBB2;
+  border-radius: 2px;
+  letter-spacing: 1px;
+  transition: background 0.2s;
+}
+
+.admin-action:hover {
+  background: #F2E7D5;
+}
+
+.admin-action.danger {
+  color: #B04A32;
+  border-color: #D9B7A8;
+}
+
+.admin-action.danger:hover {
+  background: #F7E8E1;
+}
+
+.admin-note {
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #6B5C4B;
+  background: #F6EBD8;
+  border-left: 3px solid #8A5A3B;
+}
+
+/* ========== 评论管理按钮（管理员） ========== */
+.comment-admin-actions {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.comment-admin-edit,
+.comment-admin-delete {
+  padding: 2px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  background: #FFFDF6;
+  border: 1px solid #DCCBB2;
+  border-radius: 2px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.comment-admin-edit {
+  color: #8A5A3B;
+}
+
+.comment-admin-edit:hover {
+  background: #F2E7D5;
+}
+
+.comment-admin-delete {
+  color: #B04A32;
+  border-color: #D9B7A8;
+}
+
+.comment-admin-delete:hover {
+  background: #F7E8E1;
+}
+
+/* ========== 评论内联编辑框 ========== */
+.comment-edit-box {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.comment-edit-textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #1a1a1a;
+  background: #FFFDF6;
+  border: 1px solid #DCCBB2;
+  border-radius: 3px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.comment-edit-textarea:focus {
+  outline: none;
+  border-color: #8A5A3B;
+}
+
+.comment-edit-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.comment-edit-box.dragover .comment-edit-textarea {
+  border-color: #8A5A3B;
+  background: #FBF7EE;
+}

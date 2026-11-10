@@ -1,0 +1,289 @@
+/* ========== 个人主页 ========== */
+.profile-page {
+  background: #FFFDF6;
+  border: 1px solid #E4D8C4;
+  border-radius: 2px;
+  box-shadow: 3px 3px 0 rgba(138, 90, 59, 0.10);
+  padding: 28px 32px;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #EDE0CC;
+}
+
+.profile-avatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #FFFDF6;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.profile-display-name {
+  font-family: Georgia, "Songti SC", "STSong", "SimSun", serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #3B3228;
+}
+
+.profile-head-sub {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #8C7B68;
+}
+
+.profile-stats {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.profile-stat {
+  flex: 1;
+  padding: 14px 18px;
+  background: #FBF4E6;
+  border: 1px solid #EDE0CC;
+  border-radius: 2px;
+}
+
+.profile-stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #8A5A3B;
+  line-height: 1.2;
+}
+
+.profile-stat-label {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #8C7B68;
+}
+
+.profile-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.profile-field {
+  padding: 12px 16px;
+  background: #FFFDF6;
+  border: 1px solid #EDE0CC;
+  border-radius: 2px;
+}
+
+.profile-field-label {
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: #8C7B68;
+}
+
+.profile-field-value {
+  font-size: 15px;
+  color: #3B3228;
+  word-break: break-all;
+}
+
+.profile-password {
+  font-family: Consolas, "Courier New", monospace;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-height: 26px;
+}
+
+.profile-password-plain {
+  color: #8A5A3B;
+  font-weight: 600;
+}
+
+.profile-password-empty {
+  color: #B3A08A;
+  font-weight: 400;
+}
+
+.profile-password-mask {
+  color: #8C7B68;
+}
+
+.profile-reveal-btn {
+  padding: 2px 10px;
+  background: none;
+  border: 1px solid #8A5A3B;
+  border-radius: 2px;
+  color: #8A5A3B;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0;
+  transition: background 0.2s;
+}
+
+.profile-reveal-btn:hover {
+  background: #EFE2CC;
+}
+
+.profile-reveal-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.profile-reveal-form input {
+  width: 170px;
+  padding: 5px 10px;
+  border: 1px solid #E4D8C4;
+  border-radius: 2px;
+  background: #FFFDF6;
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
+.profile-reveal-form input:focus {
+  border-color: #8A5A3B;
+}
+
+.profile-reveal-form button {
+  padding: 5px 12px;
+  background: #8A5A3B;
+  border: 1px solid #8A5A3B;
+  border-radius: 2px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0;
+}
+
+.profile-reveal-form button:hover {
+  background: #6E452D;
+}
+
+.profile-reveal-form .profile-reveal-cancel {
+  background: #FFFDF6;
+  border-color: #8A5A3B;
+  color: #8A5A3B;
+}
+
+.profile-reveal-form .profile-reveal-cancel:hover {
+  background: #EFE2CC;
+}
+
+.profile-field-note {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #B3A08A;
+}
+
+.profile-posts {
+  margin-top: 24px;
+}
+
+.profile-posts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #EDE0CC;
+  font-family: Georgia, "Songti SC", "STSong", "SimSun", serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #3B3228;
+}
+
+.profile-posts-count {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 400;
+  color: #8C7B68;
+}
+
+.profile-post-item {
+  padding: 14px 18px;
+  border-bottom: 1px solid #F0E6D6;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.profile-post-item:hover {
+  background: #FBF4E6;
+}
+
+.profile-post-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #3B3228;
+  line-height: 1.4;
+}
+
+.profile-post-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 5px;
+  font-size: 12px;
+  color: #8C7B68;
+}
+
+.profile-empty-posts {
+  padding: 22px 0;
+  text-align: center;
+  font-size: 14px;
+  color: #8C7B68;
+}
+
+.profile-guest {
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.profile-empty-icon {
+  font-size: 48px;
+  color: #C9B79F;
+}
+
+.profile-empty-text {
+  font-size: 15px;
+  color: #8C7B68;
+}
+
+@media (max-width: 768px) {
+  .profile-page {
+    padding: 20px;
+  }
+
+  .profile-header {
+    gap: 14px;
+  }
+
+  .profile-avatar {
+    width: 60px;
+    height: 60px;
+    font-size: 22px;
+  }
+
+  .profile-display-name {
+    font-size: 20px;
+  }
+
+  .profile-fields {
+    grid-template-columns: 1fr;
+  }
+}

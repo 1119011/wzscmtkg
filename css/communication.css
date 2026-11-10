@@ -1,0 +1,283 @@
+/* ========== 通讯台 ========== */
+
+.console-entry {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  background: #FBF4E6;
+  border: 1px dashed #D9C7AC;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.console-entry:hover {
+  background: #F2E7D5;
+  border-color: #8A5A3B;
+}
+
+.console-entry-icon {
+  color: #8A5A3B;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.console-entry-text {
+  font-size: 13.5px;
+  color: #3B3228;
+}
+
+.console-card .msg-dot {
+  top: 10px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+}
+
+.console-modal {
+  width: 920px;
+  max-width: 94vw;
+}
+
+.console-body {
+  padding: 0;
+  overflow: hidden;
+}
+
+.console-layout {
+  display: flex;
+  height: 62vh;
+  min-height: 440px;
+}
+
+.console-side {
+  width: 300px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  background: #FDF8EC;
+  border-right: 1px solid #EDE0CC;
+}
+
+.console-lists {
+  padding-bottom: 12px;
+}
+
+.console-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: #FFFDF6;
+}
+
+.console-side .console-section-head {
+  padding: 12px 14px 8px;
+}
+
+.console-side .console-section + .console-section {
+  margin-top: 10px;
+}
+
+.console-side .convo-item {
+  padding: 10px 14px;
+}
+
+.console-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 600;
+  color: #3B3228;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #EDE0CC;
+  margin-bottom: 4px;
+}
+
+.console-new {
+  padding: 4px 10px;
+  background: none;
+  border: 1px solid #8A5A3B;
+  border-radius: 2px;
+  color: #8A5A3B;
+  font-size: 12px;
+  transition: background 0.2s;
+}
+
+.console-new:hover {
+  background: #EFE2CC;
+}
+
+.console-empty {
+  padding: 14px;
+  font-size: 13px;
+  color: #8C7B68;
+}
+
+.console-main-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #8C7B68;
+}
+
+.console-main-empty .console-empty-icon {
+  font-size: 34px;
+  color: #C9B79F;
+}
+
+.console-chat-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #EDE0CC;
+  flex-shrink: 0;
+}
+
+.console-chat-title {
+  min-width: 0;
+}
+
+.console-chat-title .modal-title {
+  font-size: 16px;
+}
+
+.console-chat-messages {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+
+.console-chat-footer {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  border-top: 1px solid #EDE0CC;
+}
+
+.chat-bubble {
+  white-space: pre-wrap;
+}
+
+.chat-system {
+  align-self: center;
+  padding: 6px 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #A99B87;
+  background: #F3EADA;
+  border-radius: 2px;
+  white-space: pre-wrap;
+  text-align: left;
+  max-width: 78%;
+}
+
+
+.group-avatar {
+  background: #8A5A3B;
+  color: #FFFFFF;
+}
+
+.group-member-count {
+  font-size: 11px;
+  color: #8C7B68;
+  margin-left: 6px;
+}
+
+.group-pick-title {
+  font-size: 13px;
+  color: #666;
+  margin: 6px 0 8px;
+}
+
+.group-pick-list {
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid #EDE0CC;
+  border-radius: 2px;
+}
+
+.group-pick-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #F4EADB;
+  font-size: 13.5px;
+}
+
+.group-pick-item:last-child {
+  border-bottom: none;
+}
+
+.group-pick-item:hover {
+  background: #FBF4E6;
+}
+
+.group-pick-name {
+  color: #3B3228;
+}
+
+.chat-sender {
+  font-size: 11.5px;
+  color: #8C7B68;
+  margin: 0 0 3px 2px;
+}
+
+.group-owner-tag {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 4px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: #8A5A3B;
+  border: 1px solid #C9B79F;
+  border-radius: 2px;
+  vertical-align: 1px;
+}
+
+.chat-readonly-note {
+  padding: 10px 16px;
+  font-size: 12px;
+  color: #8C7B68;
+  text-align: center;
+  border-top: 1px solid #EDE0CC;
+}
+
+.group-chat-jump {
+  color: #8A5A3B;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.group-chat-jump:hover {
+  color: #6E452D;
+}
+
+/* ========== 个人主页粉丝数 ========== */
+.profile-fans {
+  margin-left: auto;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.profile-fans-value {
+  font-family: Georgia, "Songti SC", "STSong", "SimSun", serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: #8A5A3B;
+  line-height: 1.1;
+}
+
+.profile-fans-label {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #8C7B68;
+}
