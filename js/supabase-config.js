@@ -13,6 +13,7 @@
  *   4. 保存本文件，重新部署到 GitHub Pages 即可
  */
 window.SUPABASE_CONFIG = {
-  url: 'https://csuhlvyeciwevywcvhna.supabase.co',      // 例：'https://abcdefghijk.supabase.co'
+  // 通过 Cloudflare Worker 中转访问 Supabase，保证国内网络可用
+  url: 'https://api.xingcunzhe.xyz',      // 例：'https://abcdefghijk.supabase.co'
   anonKey: 'sb_publishable_mNBzfboiAuaijTAxP8veNw_slCO_QUq'   // 例：'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
 };
