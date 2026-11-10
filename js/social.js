@@ -423,18 +423,30 @@
       detail.title.indexOf('找一部在暗网上看过的离奇动画') !== -1 &&
       detail.title.indexOf('该帖记录') === -1 &&
       detail.title.indexOf('该帖整理') === -1;
-    var jumpIndex = -1;
-    var jumpIndex2 = -1;
+    // 原文存在跳楼与省略段，按锚点推算楼层号
+    var FLOOR_ANCHORS = [
+      { text: '醒了。', floor: 314 },
+      { text: '你们怎么讨论到700多楼了？', floor: 734 },
+      { text: '刚刚看到烛光灵大人回来太高兴了喝了两杯哈哈哈哈哈哈。', floor: 758 },
+      { text: '你看我说啥。', floor: 789 },
+      { text: '蹲', floor: 848 },
+      { prefix: '浏览器🔍shaknb', floor: 1788 }
+    ];
+    var anchors = [];
     if (isAnimePost) {
-      detail.comments.forEach(function (c, i) {
-        if (c.content === '你们怎么讨论到700多楼了？') jumpIndex = i;
-      });
-      detail.comments.forEach(function (c, i) {
-        if (jumpIndex2 === -1 && i > jumpIndex &&
-            c.content === '浏览器🔍shaknb点me，里面什么都有，你们也用得上。') {
-          jumpIndex2 = i;
+      var usedAnchors = {};
+      FLOOR_ANCHORS.forEach(function (def) {
+        for (var ai = 0; ai < detail.comments.length; ai++) {
+          if (usedAnchors[ai]) continue;
+          var text = (detail.comments[ai].content || '').trim();
+          var hit = def.text ? text === def.text : text.indexOf(def.prefix) === 0;
+          if (!hit) continue;
+          anchors.push({ index: ai, floor: def.floor });
+          usedAnchors[ai] = true;
+          break;
         }
       });
+      anchors.sort(function (a, b) { return a.index - b.index; });
     }
 
     var commentItems = detailEl.querySelectorAll('.comment-item');
@@ -446,13 +458,14 @@
       if (meta && !meta.querySelector('.comment-floor')) {
         var floor = document.createElement('span');
         floor.className = 'comment-floor';
-        if (isAnimePost && jumpIndex2 > -1 && index >= jumpIndex2) {
-          floor.textContent = (17788 + index - jumpIndex2) + 'L';
-        } else if (isAnimePost && jumpIndex > -1 && index >= jumpIndex) {
-          floor.textContent = (734 + index - jumpIndex) + 'L';
-        } else {
-          floor.textContent = (index + 2) + 'L';
+        var floorNum = index + 2;
+        for (var fi = anchors.length - 1; fi >= 0; fi--) {
+          if (index >= anchors[fi].index) {
+            floorNum = anchors[fi].floor + (index - anchors[fi].index);
+            break;
+          }
         }
+        floor.textContent = floorNum + 'L';
         meta.appendChild(floor);
       }
 
@@ -460,17 +473,25 @@
     });
 
     function addSeparator(atIndex) {
-      if (!commentItems[atIndex]) return;
       var commentList = detailEl.querySelector('.comment-list');
       if (!commentList) return;
       var separator = document.createElement('li');
       separator.className = 'comment-separator';
       separator.textContent = '......';
-      commentList.insertBefore(separator, commentItems[atIndex]);
+      if (!commentItems[atIndex]) commentList.appendChild(separator);
+      else commentList.insertBefore(separator, commentItems[atIndex]);
     }
 
-    if (isAnimePost && jumpIndex > -1) addSeparator(jumpIndex);
-    if (isAnimePost && jumpIndex2 > -1) addSeparator(jumpIndex2);
+    // 原文的省略字段：非用户发言，以分隔行呈现
+    if (isAnimePost) {
+      detail.comments.forEach(function (c, i) {
+        var text = (c.content || '').trim();
+        if (text === '醒了。' || text === '蹲' ||
+            text.indexOf('浏览器🔍shaknb') === 0) {
+          addSeparator(i);
+        }
+      });
+    }
 
     // 「调查进展」112L 后插入省略号，从下一楼起改为 231L 连续计数
     if (detail.title &&
