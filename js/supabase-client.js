@@ -36,11 +36,31 @@ const SupabaseAPI = {
     throw new Error('[Supabase] ' + label + '失败（' + res.status + '）' + detail);
   },
 
+  // 带超时的 fetch：避免弱网下请求挂死导致页面长时间空白
+  async _fetch(url, options, timeoutMs) {
+    const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const opts = Object.assign({}, options);
+    if (ctrl) opts.signal = ctrl.signal;
+    let timer = null;
+    const timeout = new Promise(function (_, reject) {
+      timer = setTimeout(function () {
+        if (ctrl) { try { ctrl.abort(); } catch (e) {} }
+        reject(new Error('[Supabase] 请求超时（' + Math.round(timeoutMs / 1000) + 's）'));
+      }, timeoutMs || 10000);
+    });
+    try {
+      return await Promise.race([fetch(url, opts), timeout]);
+    } finally {
+      clearTimeout(timer);
+    }
+  },
+
   // 读取整张表
-  async select(table, query) {
-    const res = await fetch(
+  async select(table, query, timeoutMs) {
+    const res = await this._fetch(
       this.url + '/rest/v1/' + table + '?' + (query || 'select=*'),
-      { headers: this._headers() }
+      { headers: this._headers() },
+      timeoutMs || 10000
     );
     await this._check(res, '读取 ' + table + ' ');
     return res.json();

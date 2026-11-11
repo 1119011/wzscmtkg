@@ -104,13 +104,22 @@ const Storage = {
 
     try {
       const fetched = await this._fetchRemote();
+      const failed = fetched.failed || [];
 
-      // 云端是空的、本地已有内容 → 把现有内容一次性导入云端
-      if (fetched.posts.length === 0 && fetched.users.length === 0) {
+      // 云端是空的、本机也没有内容 → 首次导入
+      if (fetched.posts.length === 0 && fetched.users.length === 0 &&
+          this._cache.posts.length === 0 && this._cache.users.length === 0) {
         await this._importLocalData();
         this._cache = await this._fetchRemote();
       } else {
-        this._cache = fetched;
+        // 某张表拉取失败（弱网/超时）时保留 mirror 里的旧数据，避免整页变空
+        this._cache = {
+          users: failed.indexOf('users') === -1 ? fetched.users : this._cache.users,
+          posts: failed.indexOf('posts') === -1 ? fetched.posts : this._cache.posts,
+          comments: failed.indexOf('comments') === -1 ? fetched.comments : this._cache.comments,
+          likes: failed.indexOf('likes') === -1 ? fetched.likes : this._cache.likes,
+          kv: failed.indexOf('kv') === -1 ? fetched.kv : this._cache.kv
+        };
       }
 
       this._mirror();
@@ -119,7 +128,8 @@ const Storage = {
       this._startPolling();
       console.log('[Storage] 云端模式已启用，所有访客共享同一份数据',
         'posts=' + this._cache.posts.length,
-        'comments=' + this._cache.comments.length);
+        'comments=' + this._cache.comments.length,
+        failed.length ? '拉取失败=' + failed.join(',') : '');
     } catch (err) {
       console.error('[Storage] 云端连接失败，已回退到本地模式：', err);
       this._remote = false;
@@ -205,19 +215,27 @@ const Storage = {
   },
 
   async _fetchRemote() {
+    const failed = [];
+    const load = async (table, timeout) => {
+      try {
+        return await SupabaseAPI.select(table, null, timeout);
+      } catch (err) {
+        failed.push(table);
+        console.warn('[Storage] 拉取 ' + table + ' 失败：' + (err && err.message));
+        return [];
+      }
+    };
+
     const [users, posts, comments, likes, kv] = await Promise.all([
-      SupabaseAPI.select('users').catch(err => { console.error('[Storage] fetch users 失败:', err); return []; }),
-      SupabaseAPI.select('posts').catch(err => { console.error('[Storage] fetch posts 失败:', err); return []; }),
-      SupabaseAPI.select('comments').catch(err => { console.error('[Storage] fetch comments 失败:', err); return []; }),
-      SupabaseAPI.select('likes').catch(err => { console.error('[Storage] fetch likes 失败:', err); return []; }),
-      SupabaseAPI.select('kv').catch(() => [])
+      load('users', 10000),
+      load('posts', 10000),
+      load('comments', 15000),
+      load('likes', 10000),
+      load('kv', 10000)
     ]);
 
-    console.log('[Storage] _fetchRemote 原始返回',
-      'users=' + (users && users.length) + ' type=' + (users && users.constructor.name),
-      'posts=' + (posts && posts.length) + ' type=' + (posts && posts.constructor.name));
-
     return {
+      failed: failed,
       users: users.map(row => ({
         ...(row.data || {}),
         id: row.id,
@@ -286,7 +304,15 @@ const Storage = {
 
     try {
       const data = await this._fetchRemote();
-      this._cache = data;
+      const failed = data.failed || [];
+      // 拉取失败的表保留旧缓存，避免弱网下整套内容被清空
+      this._cache = {
+        users: failed.indexOf('users') === -1 ? data.users : this._cache.users,
+        posts: failed.indexOf('posts') === -1 ? data.posts : this._cache.posts,
+        comments: failed.indexOf('comments') === -1 ? data.comments : this._cache.comments,
+        likes: failed.indexOf('likes') === -1 ? data.likes : this._cache.likes,
+        kv: failed.indexOf('kv') === -1 ? data.kv : this._cache.kv
+      };
       const sig = this._signature();
       if (sig === this._lastSig) return false;
 
