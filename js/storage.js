@@ -15,8 +15,8 @@ const DB_NAME = 'forum_db';
 const DB_VERSION = 1;
 const IMAGE_STORE = 'images';
 
-// 需要与云端同步的键值对（群聊内容）
-const SYNC_KV_KEYS = ['survivorGroupChats_v1', 'survivorGroupMessages_v1'];
+// 需要与云端同步的键值对（群聊 + 私信内容）
+const SYNC_KV_KEYS = ['survivorGroupChats_v1', 'survivorGroupMessages_v1', 'messages'];
 
 // 一次性种子 / 补丁脚本的守卫键。
 // 云端已有数据时直接标记为已完成，避免每个新访客重复导入一遍。
@@ -58,6 +58,7 @@ const Storage = {
   _pending: 0,
   _pollTimer: null,
   _lastSig: '',
+  _kvSnap: {}, // 聊天数据逐条写入的已同步快照：key -> { itemId: json }
 
   // ========== 初始化 ==========
   init() {
@@ -100,6 +101,8 @@ const Storage = {
       likes: (this.get('likes') || []).map(l => ({ ...l })),
       kv: (this.get('kv') || {})
     };
+    // 本机镜像里的聊天记录（旧版本只存在本机，需要合并进云端）
+    const mirrorChat = this._readMirrorChat();
     console.log('[Storage] 初始化：mirror 兜底已加载', this._cache.posts.length + ' posts');
 
     try {
@@ -121,6 +124,14 @@ const Storage = {
           kv: failed.indexOf('kv') === -1 ? fetched.kv : this._cache.kv
         };
       }
+
+      // 记录云端已有的聊天条目，再把本机多出来的聊天记录补推上去
+      const kvFailed = (failed.indexOf('kv') !== -1) ||
+        (this._cache.failed && this._cache.failed.indexOf('kv') !== -1);
+      this._resetKvSnap(kvFailed ? {} : this._cache.kv);
+      this._mergeMirrorChat(mirrorChat);
+      SYNC_KV_KEYS.forEach(key => this._pushKvItems(key, this._cache.kv[key]));
+      this._ensureCurrentUserSynced();
 
       this._mirror();
       this._primeSeedFlags();
@@ -206,8 +217,16 @@ const Storage = {
     for (const key of SYNC_KV_KEYS) {
       const value = this._parseLocal(key);
       if (Array.isArray(value) && value.length) {
-        const row = { key: key, value: value, updated_at: new Date().toISOString() };
-        await this._enqueue(() => SupabaseAPI.upsert('kv', [row], 'key'));
+        const rows = value
+          .filter(item => item && item.id)
+          .map(item => ({
+            key: key + '#' + item.id,
+            value: item,
+            updated_at: new Date().toISOString()
+          }));
+        if (rows.length) {
+          await this._enqueue(() => SupabaseAPI.upsert('kv', rows, 'key'));
+        }
       }
     }
 
@@ -231,7 +250,7 @@ const Storage = {
       load('posts', 10000),
       load('comments', 15000),
       load('likes', 10000),
-      load('kv', 10000)
+      load('kv', 18000)
     ]);
 
     return {
@@ -252,8 +271,112 @@ const Storage = {
         userId: row.user_id,
         createdAt: row.created_at
       })),
-      kv: (kv || []).reduce((acc, row) => { acc[row.key] = row.value; return acc; }, {})
+      kv: this._assembleKv(kv)
     };
+  },
+
+  // 聊天记录按「每条一行」存在 kv 表里（key 形如 xxx#消息id），
+  // 读取时再合并成数组；这样多人同时发言不会互相覆盖。
+  _assembleKv(rows) {
+    const out = {};
+    const items = {};
+    (rows || []).forEach(row => {
+      if (SYNC_KV_KEYS.indexOf(row.key) !== -1) {
+        out[row.key] = row.value;
+        return;
+      }
+      let matched = false;
+      for (const key of SYNC_KV_KEYS) {
+        const prefix = key + '#';
+        if (row.key.indexOf(prefix) === 0) {
+          (items[key] = items[key] || []).push(row.value);
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) out[row.key] = row.value;
+    });
+
+    SYNC_KV_KEYS.forEach(key => {
+      const byId = {};
+      if (Array.isArray(out[key])) {
+        out[key].forEach(v => { if (v && v.id) byId[v.id] = v; });
+      }
+      (items[key] || []).forEach(v => { if (v && v.id) byId[v.id] = v; });
+      // 逐条数据优先（同 id 时覆盖旧的整段数组）
+      out[key] = Object.keys(byId).map(id => byId[id])
+        .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+    });
+    return out;
+  },
+
+  _readMirrorChat() {
+    const mirror = {};
+    SYNC_KV_KEYS.forEach(key => {
+      try {
+        const raw = localStorage.getItem(key);
+        mirror[key] = raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        mirror[key] = null;
+      }
+    });
+    return mirror;
+  },
+
+  // 把本机旧版本留下的聊天记录合并进缓存（只补云端没有的条目）
+  _mergeMirrorChat(mirror) {
+    SYNC_KV_KEYS.forEach(key => {
+      const local = mirror[key];
+      if (!Array.isArray(local) || !local.length) return;
+      const cloud = Array.isArray(this._cache.kv[key]) ? this._cache.kv[key] : [];
+      const byId = {};
+      cloud.forEach(v => { if (v && v.id) byId[v.id] = v; });
+      let added = 0;
+      local.forEach(v => {
+        if (v && v.id && !byId[v.id]) { byId[v.id] = v; added++; }
+      });
+      if (!added) return;
+      this._cache.kv[key] = Object.keys(byId).map(id => byId[id])
+        .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      console.log('[Storage] 本机 ' + key + ' 有 ' + added + ' 条云端没有的聊天记录，已合并');
+    });
+  },
+
+  _resetKvSnap(kv) {
+    this._kvSnap = {};
+    SYNC_KV_KEYS.forEach(key => {
+      const arr = kv && kv[key];
+      if (!Array.isArray(arr)) return;
+      const map = {};
+      arr.forEach(item => {
+        if (item && item.id) map[item.id] = JSON.stringify(item);
+      });
+      this._kvSnap[key] = map;
+    });
+  },
+
+  // 合并云端聊天数据：云端没有的本地条目保留下来并重推（聊天记录不做删除，保留更安全）
+  _mergeCloudChat(cloudKv) {
+    const out = { ...cloudKv };
+    SYNC_KV_KEYS.forEach(key => {
+      const cloud = Array.isArray(cloudKv[key]) ? cloudKv[key] : [];
+      const snap = this._kvSnap[key] || (this._kvSnap[key] = {});
+      const byId = {};
+      cloud.forEach(item => {
+        if (!item || !item.id) return;
+        byId[item.id] = item;
+        snap[item.id] = JSON.stringify(item);
+      });
+
+      (this._cache.kv[key] || []).forEach(item => {
+        if (!item || !item.id || byId[item.id]) return;
+        byId[item.id] = item;
+      });
+
+      out[key] = Object.keys(byId).map(id => byId[id])
+        .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+    });
+    return out;
   },
 
   // 把云端数据在本地存一份镜像，云端连不上时页面仍有内容可看
@@ -264,6 +387,32 @@ const Storage = {
     SYNC_KV_KEYS.forEach(key => {
       if (this._cache.kv[key] !== undefined) this._writeLocal(key, this._cache.kv[key]);
     });
+  },
+
+  // 本机账号如果还没进云端（注册时网络不通等情况），补传一次，
+  // 否则别人查不到这个用户，私信和群聊就会被过滤掉。
+  _ensureCurrentUserSynced() {
+    if (this._userSyncTriedAt && Date.now() - this._userSyncTriedAt < 60000) return;
+    this._userSyncTriedAt = Date.now();
+
+    let cur = null;
+    let full = null;
+    try {
+      cur = JSON.parse(localStorage.getItem('currentUser') || 'null');
+      if (cur && cur.id) {
+        const localUsers = JSON.parse(localStorage.getItem('users') || '[]');
+        full = (localUsers || []).filter(u => u && u.id === cur.id)[0] || null;
+      }
+    } catch (e) { cur = null; }
+    if (!cur || !cur.id || !cur.username) return;
+    if (this._cache.users.some(u => u.id === cur.id)) return;
+
+    // 优先用本机完整记录（含密码），保证她换设备后还能登录
+    const target = full || cur;
+    console.log('[Storage] 本机账号尚未同步到云端，正在补传：' + target.username);
+    this._cache.users.push(target);
+    this._writeLocal('users', this._cache.users);
+    this._enqueue(() => SupabaseAPI.upsert('users', [this._userRow(target)])).catch(() => {});
   },
 
   _primeSeedFlags() {
@@ -284,7 +433,19 @@ const Storage = {
     c.comments.forEach(x => { maxComment = Math.max(maxComment, x.updatedAt || x.createdAt || 0); });
     c.users.forEach(u => { maxUser = Math.max(maxUser, u.createdAt || 0); });
     return [c.users.length, c.posts.length, c.comments.length, c.likes.length,
-      maxPost, maxComment, maxUser].join('|');
+      maxPost, maxComment, maxUser, this._kvSignature()].join('|');
+  },
+
+  // 聊天内容的变化也要参与比对，否则别人发来的消息不会触发界面刷新
+  _kvSignature() {
+    const kv = this._cache.kv || {};
+    return SYNC_KV_KEYS.map(key => {
+      const arr = kv[key];
+      if (!Array.isArray(arr) || !arr.length) return '0';
+      let maxCreated = 0;
+      arr.forEach(item => { maxCreated = Math.max(maxCreated, (item && item.createdAt) || 0); });
+      return arr.length + ':' + maxCreated;
+    }).join(',');
   },
 
   // 定时拉取别人的新内容
@@ -311,8 +472,17 @@ const Storage = {
         posts: failed.indexOf('posts') === -1 ? data.posts : this._cache.posts,
         comments: failed.indexOf('comments') === -1 ? data.comments : this._cache.comments,
         likes: failed.indexOf('likes') === -1 ? data.likes : this._cache.likes,
-        kv: failed.indexOf('kv') === -1 ? data.kv : this._cache.kv
+        kv: failed.indexOf('kv') === -1 ? this._mergeCloudChat(data.kv) : this._cache.kv
       };
+
+      // 把还没成功推到云端的聊天条目补推一次（正常情况下没有差异，不会发请求）
+      if (failed.indexOf('kv') === -1) {
+        SYNC_KV_KEYS.forEach(key => this._pushKvItems(key, this._cache.kv[key]));
+      }
+      if (failed.indexOf('users') === -1) {
+        this._ensureCurrentUserSynced();
+      }
+
       const sig = this._signature();
       if (sig === this._lastSig) return false;
 
@@ -321,6 +491,8 @@ const Storage = {
       if (typeof App !== 'undefined' && App && typeof App.refreshFromRemote === 'function') {
         App.refreshFromRemote();
       }
+      // 通知聊天界面刷新（通讯台 / 私信窗口）
+      try { document.dispatchEvent(new CustomEvent('storage:synced')); } catch (e) { /* ignore */ }
       return true;
     } catch (err) {
       console.warn('[Storage] 云端同步失败，稍后自动重试', err);
@@ -557,11 +729,46 @@ const Storage = {
     if (this._remote && !this._offline && SYNC_KV_KEYS.indexOf(key) !== -1) {
       this._cache.kv[key] = value;
       this._writeLocal(key, value);
-      const row = { key: key, value: value, updated_at: new Date().toISOString() };
-      this._enqueue(() => SupabaseAPI.upsert('kv', [row], 'key')).catch(() => {});
+      if (Array.isArray(value)) {
+        this._pushKvItems(key, value);
+      } else {
+        const row = { key: key, value: value, updated_at: new Date().toISOString() };
+        this._enqueue(() => SupabaseAPI.upsert('kv', [row], 'key')).catch(() => {});
+      }
       return;
     }
     this._writeLocal(key, value);
+  },
+
+  // 聊天记录逐条写入：只推新增 / 有变化的条目，多人同时发言不会互相覆盖
+  _pushKvItems(key, arr) {
+    if (!Array.isArray(arr)) return;
+    const snap = this._kvSnap[key] || (this._kvSnap[key] = {});
+    const rows = [];
+    const jsons = {};
+    arr.forEach(item => {
+      if (!item || !item.id) return;
+      const json = JSON.stringify(item);
+      jsons[item.id] = json;
+      if (snap[item.id] === json) return;
+      rows.push({
+        key: key + '#' + item.id,
+        value: item,
+        updated_at: new Date().toISOString()
+      });
+    });
+    if (!rows.length) return;
+
+    const sentKeys = rows.map(r => r.key);
+    this._enqueue(async () => {
+      for (let i = 0; i < rows.length; i += 50) {
+        await SupabaseAPI.upsert('kv', rows.slice(i, i + 50), 'key');
+      }
+      sentKeys.forEach(rowKey => {
+        const id = rowKey.slice(key.length + 1);
+        if (jsons[id] !== undefined) snap[id] = jsons[id];
+      });
+    }).catch(() => {});
   },
 
   // ========== 用户相关 ==========

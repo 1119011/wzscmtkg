@@ -73,6 +73,10 @@
     return Storage.get(GROUP_KEY) || [];
   }
 
+  // 当前打开的会话，用于别人发来新消息时原地刷新
+  var activeGroupId = null;
+  var activeUserId = null;
+
   function saveGroups(groups) {
     Storage.set(GROUP_KEY, groups);
   }
@@ -235,6 +239,8 @@
   function renderConsoleEmpty() {
     var main = document.getElementById('console-main');
     if (!main) return;
+    activeGroupId = null;
+    activeUserId = null;
     main.innerHTML =
       '<div class="console-main-empty">' +
         '<div class="console-empty-icon">✉</div>' +
@@ -404,6 +410,7 @@
     var me = Auth.getCurrentUser();
     var main = document.getElementById('console-main');
     if (!main) return;
+    activeUserId = other.id; activeGroupId = null;
 
     var messages = window.SocialChat ? SocialChat.getConversation(other.id) : [];
     var head =
@@ -478,6 +485,7 @@
   function renderGroupPanel(group, me, readOnly) {
     var main = document.getElementById('console-main');
     if (!main) return;
+    activeGroupId = group.id; activeUserId = null;
 
     var messages = getGroupMessages()
       .filter(function (m) { return m.groupId === group.id; })
@@ -616,6 +624,38 @@
   if (window.SocialChat) {
     window.SocialChat.openGroupByName = openGroupByName;
   }
+
+  // 云端同步到新消息时，原地刷新通讯台（不打断正在输入的文字）
+  document.addEventListener('storage:synced', function () {
+    var me = Auth.getCurrentUser();
+    if (!me) return;
+    if (!document.getElementById('console-lists')) return;
+
+    renderConsoleLists(me);
+
+    var box = document.getElementById('console-chat-messages');
+    if (!box) return;
+
+    if (activeGroupId) {
+      var group = getGroups().filter(function (g) {
+        return g.id === activeGroupId && g.memberIds.indexOf(me.id) !== -1;
+      })[0];
+      if (!group) return;
+      var messages = getGroupMessages()
+        .filter(function (m) { return m.groupId === group.id; })
+        .sort(function (a, b) { return a.createdAt - b.createdAt; });
+      box.innerHTML = messagesHtml(messages, me, true, group.ownerId);
+      box.scrollTop = box.scrollHeight;
+    } else if (activeUserId) {
+      var other = Storage.findUserById(activeUserId);
+      if (!other) return;
+      if (window.SocialChat) SocialChat.markRead(other.id);
+      box.innerHTML = messagesHtml(SocialChat.getConversation(other.id), me, false);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    if (window.SocialChat) SocialChat.refreshBadge();
+  });
 
   // 打开通讯台时若已在页面内，刷新左侧列表
   window.addEventListener('storage', function () {

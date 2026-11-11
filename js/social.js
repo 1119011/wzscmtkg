@@ -4,6 +4,9 @@
  * 2. 用户信息卡与私信系统
  */
 (function () {
+  // 当前打开的私信窗口对象，用于同步到新消息时原地刷新
+  var activeChatUserId = null;
+
   // 评论按时间正序展示，便于楼层编号
   var origGetDetail = Posts.getDetail.bind(Posts);
   Posts.getDetail = function (postId) {
@@ -207,6 +210,7 @@
       App.showLoginModal();
       return;
     }
+    activeChatUserId = otherId;
 
     var other = Storage.findUserById(otherId);
     var otherName = displayName(other);
@@ -688,4 +692,25 @@
     refreshBadge: refreshMessageBadge,
     displayName: displayName
   };
+  // 同步到别人的新私信时，刷新当前打开的私信窗口
+  document.addEventListener('storage:synced', function () {
+    refreshMessageBadge();
+    if (!activeChatUserId) return;
+    var box = document.getElementById('chat-messages');
+    if (!box) { activeChatUserId = null; return; }
+    var me = Auth.getCurrentUser();
+    if (!me) return;
+    markRead(activeChatUserId, me.id);
+    var messages = getConversation(activeChatUserId);
+    box.innerHTML = messages.length === 0
+      ? '<div class="chat-empty">还没有消息，打个招呼吧</div>'
+      : messages.map(function (msg) {
+          var mine = msg.fromId === me.id;
+          return '<div class="chat-row ' + (mine ? 'mine' : 'other') + '">' +
+            '<div class="chat-bubble">' + App.escapeHtml(msg.content) + '</div>' +
+            '<div class="chat-time">' + Posts.formatTime(msg.createdAt) + '</div>' +
+          '</div>';
+        }).join('');
+    box.scrollTop = box.scrollHeight;
+  });
 })();
