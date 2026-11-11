@@ -92,20 +92,34 @@ const Storage = {
 
   // ---------- 云端模式 ----------
   async _initRemote() {
+    // 先用 localStorage 里的 mirror 填充 _cache 做兜底（对首次访问用户 mirror 为空）
+    this._cache = {
+      users: (this.get('users') || []).map(u => ({ ...u })),
+      posts: (this.get('posts') || []).map(p => ({ ...p })),
+      comments: (this.get('comments') || []).map(c => ({ ...c })),
+      likes: (this.get('likes') || []).map(l => ({ ...l })),
+      kv: (this.get('kv') || {})
+    };
+    console.log('[Storage] 初始化：mirror 兜底已加载', this._cache.posts.length + ' posts');
+
     try {
-      this._cache = await this._fetchRemote();
+      const fetched = await this._fetchRemote();
 
       // 云端是空的、本地已有内容 → 把现有内容一次性导入云端
-      if (this._cache.posts.length === 0 && this._cache.users.length === 0) {
+      if (fetched.posts.length === 0 && fetched.users.length === 0) {
         await this._importLocalData();
         this._cache = await this._fetchRemote();
+      } else {
+        this._cache = fetched;
       }
 
       this._mirror();
       this._primeSeedFlags();
       this._lastSig = this._signature();
       this._startPolling();
-      console.log('[Storage] 云端模式已启用，所有访客共享同一份数据');
+      console.log('[Storage] 云端模式已启用，所有访客共享同一份数据',
+        'posts=' + this._cache.posts.length,
+        'comments=' + this._cache.comments.length);
     } catch (err) {
       console.error('[Storage] 云端连接失败，已回退到本地模式：', err);
       this._remote = false;
@@ -192,12 +206,16 @@ const Storage = {
 
   async _fetchRemote() {
     const [users, posts, comments, likes, kv] = await Promise.all([
-      SupabaseAPI.select('users'),
-      SupabaseAPI.select('posts'),
-      SupabaseAPI.select('comments'),
-      SupabaseAPI.select('likes'),
+      SupabaseAPI.select('users').catch(err => { console.error('[Storage] fetch users 失败:', err); return []; }),
+      SupabaseAPI.select('posts').catch(err => { console.error('[Storage] fetch posts 失败:', err); return []; }),
+      SupabaseAPI.select('comments').catch(err => { console.error('[Storage] fetch comments 失败:', err); return []; }),
+      SupabaseAPI.select('likes').catch(err => { console.error('[Storage] fetch likes 失败:', err); return []; }),
       SupabaseAPI.select('kv').catch(() => [])
     ]);
+
+    console.log('[Storage] _fetchRemote 原始返回',
+      'users=' + (users && users.length) + ' type=' + (users && users.constructor.name),
+      'posts=' + (posts && posts.length) + ' type=' + (posts && posts.constructor.name));
 
     return {
       users: users.map(row => ({
