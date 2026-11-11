@@ -22,6 +22,54 @@
       } catch (e) {}
     })();
   </script>
+  <style>
+    /* 首屏加载骨架：数据到达前占位，避免误认为是空站 */
+    .post-skeleton {
+      background: #FFFDF6;
+      border: 1px solid #E4D8C4;
+      border-radius: 2px;
+      padding: 16px 22px;
+      margin-bottom: 10px;
+    }
+    .post-skeleton .sk-line {
+      height: 12px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, #EFE6D6 25%, #F7F1E6 50%, #EFE6D6 75%);
+      background-size: 200% 100%;
+      animation: sk-shimmer 1.4s ease-in-out infinite;
+      margin-bottom: 10px;
+    }
+    .post-skeleton .sk-line.sk-title { height: 16px; width: 62%; }
+    .post-skeleton .sk-line.sk-short { width: 34%; margin-bottom: 0; }
+    .post-skeleton .sk-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .post-skeleton .sk-avatar {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #EFE6D6;
+    }
+    .post-skeleton .sk-meta .sk-line { margin-bottom: 0; width: 88px; height: 10px; }
+    .post-skeleton-hint {
+      text-align: center;
+      font-size: 12px;
+      letter-spacing: 2px;
+      color: #A89680;
+      padding: 4px 0 14px;
+    }
+    @keyframes sk-shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .dark-mode .post-skeleton { background: #23252b; border-color: #34373f; }
+    .dark-mode .post-skeleton .sk-line { background: linear-gradient(90deg, #34373f 25%, #3d414a 50%, #34373f 75%); background-size: 200% 100%; }
+    .dark-mode .post-skeleton .sk-avatar { background: #34373f; }
+    .dark-mode .post-skeleton-hint { color: #7c8494; }
+  </style>
 </head>
 <body>
 
@@ -86,7 +134,25 @@
     <!-- 中间内容区 -->
     <main id="content-area" class="content-area">
       <div id="post-list-container">
-        <!-- 帖子列表将通过 JS 渲染 -->
+        <div class="post-skeleton-hint">正在加载…</div>
+        <div class="post-skeleton">
+          <div class="sk-meta"><div class="sk-avatar"></div><div class="sk-line"></div></div>
+          <div class="sk-line sk-title"></div>
+          <div class="sk-line"></div>
+          <div class="sk-line sk-short"></div>
+        </div>
+        <div class="post-skeleton">
+          <div class="sk-meta"><div class="sk-avatar"></div><div class="sk-line"></div></div>
+          <div class="sk-line sk-title"></div>
+          <div class="sk-line"></div>
+          <div class="sk-line sk-short"></div>
+        </div>
+        <div class="post-skeleton">
+          <div class="sk-meta"><div class="sk-avatar"></div><div class="sk-line"></div></div>
+          <div class="sk-line sk-title"></div>
+          <div class="sk-line"></div>
+          <div class="sk-line sk-short"></div>
+        </div>
       </div>
     </main>
 
